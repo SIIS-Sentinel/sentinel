@@ -19,18 +19,20 @@
 #include <linux/sysinfo.h>
 
 #define procfs_name "sentinel"
-#define MESSAGE "Welcome to Sentinel\0"
+#define MESSAGE "Welcome to Sentinel\n\0"
 #define BUF_SIZE 32
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
 MODULE_DESCRIPTION("Hardware monitoring module");
-MODULE_VERSION("0.2");
+MODULE_VERSION("0.3");
 
 static int __initdata data = 3;
 struct proc_dir_entry* proc_file;
 static char message[BUF_SIZE];
 static char* msg_ptr;
+static long int msg_len;
+static int max_iterations = 10;
 
 ssize_t procfile_read(struct file* file, char __user* buffer, size_t len, loff_t* offset)
 {
@@ -40,29 +42,32 @@ ssize_t procfile_read(struct file* file, char __user* buffer, size_t len, loff_t
     printk(KERN_INFO "Read handler of Sentinel called\n");
     printk(KERN_INFO "Length: %ld, offset: %lld\n", len, *offset);
 
+    // Reset the message counter if necessary
     if (*msg_ptr == 0) {
         msg_ptr = message;
     }
+
+    // Verify if we have sent the messahe enough times
+    if ((*offset) / msg_len == max_iterations) {
+        return 0;
+    }
+
+    // Copy the message once
     while (len && *msg_ptr) {
         put_user(*(msg_ptr)++, buffer++);
         len--;
         bytes_read++;
+        (*offset)++;
     }
 
-    // ptr = buffer;
-    // if (len > BUF_SIZE) {
-    //     len = BUF_SIZE;
-    //     printk(KERN_INFO "Adjusted size to %ld", len);
-    //     return -1;
-    // }
-    // retval = copy_to_user(buffer, message, len);
     printk(KERN_INFO "Number of bytes copied: %d", bytes_read);
-    return len;
+    return bytes_read;
 }
 
 ssize_t procfile_write(struct file* file, const char __user* buffer, size_t len, loff_t* offset)
 {
     printk(KERN_INFO "Write handler of Sentinel called\n");
+    printk(KERN_ALERT "This device does not support write operations\n");
     return len;
 }
 
@@ -93,13 +98,13 @@ static int __init hello(void)
     int i;
     printk(KERN_INFO "Hello world %d\n", data);
     // Create the proc file
-    proc_file = proc_create(procfs_name, 0644, NULL, &fops);
-    for (i = 0; i < 23; i++) {
+    proc_file = proc_create(procfs_name, 0444, NULL, &fops);
+    for (i = 0; i < strlen(MESSAGE); i++) {
         message[i] = MESSAGE[i];
     }
     msg_ptr = message;
-    printk(KERN_INFO "Message initialized to %s", message);
-    // proc_file = proc_create_single(procfs_name, 0, NULL, procfile_read);
+    msg_len = strlen(message);
+    printk(KERN_INFO "Message initialized to %s, length %ld\n", message, msg_len);
     return 0;
 }
 
