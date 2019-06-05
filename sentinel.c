@@ -18,14 +18,14 @@
 #include <linux/swap.h>
 #include <linux/sysinfo.h>
 
-#define procfs_name "sentinel_2"
+#define procfs_name "sentinel"
 #define MESSAGE "Welcome to Sentinel\0"
 #define BUF_SIZE 32
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
 MODULE_DESCRIPTION("Hardware monitoring module");
-MODULE_VERSION("0.1");
+MODULE_VERSION("0.2");
 
 static int __initdata data = 3;
 struct proc_dir_entry* proc_file;
@@ -38,12 +38,12 @@ ssize_t procfile_read(struct file* file, char __user* buffer, size_t len, loff_t
     // unsigned long retval;
     int bytes_read = 0;
     printk(KERN_INFO "Read handler of Sentinel called\n");
-    printk(KERN_INFO "Length: %ld, offset: %lln\n", len, offset);
+    printk(KERN_INFO "Length: %ld, offset: %lld\n", len, *offset);
 
     if (*msg_ptr == 0) {
         msg_ptr = message;
     }
-    while (len || *msg_ptr) {
+    while (len && *msg_ptr) {
         put_user(*(msg_ptr)++, buffer++);
         len--;
         bytes_read++;
@@ -57,7 +57,7 @@ ssize_t procfile_read(struct file* file, char __user* buffer, size_t len, loff_t
     // }
     // retval = copy_to_user(buffer, message, len);
     printk(KERN_INFO "Number of bytes copied: %d", bytes_read);
-    return 0;
+    return len;
 }
 
 ssize_t procfile_write(struct file* file, const char __user* buffer, size_t len, loff_t* offset)
