@@ -2,10 +2,10 @@
 .vscode/
 
 # Build artifacts
-.hello*
-hello.o
-hello.ko
-hello.mod*
+.sentinel*
+sentinel.o
+sentinel.ko
+sentinel.mod*
 Module.symvers
 modules.order
 .cache.mk

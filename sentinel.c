@@ -18,8 +18,8 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
-MODULE_DESCRIPTION("Simple Hello World");
-MODULE_VERSION("0.2");
+MODULE_DESCRIPTION("Hardware monitoring module");
+MODULE_VERSION("0.1");
 
 static int __initdata data = 3;
 

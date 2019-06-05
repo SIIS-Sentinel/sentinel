@@ -1,7 +1,7 @@
-obj-m += hello.o
+obj-m += sentinel.o
 
 all:
-	make -C /lib/modules/$(shell uname -r)/build M=/home/adrien/dev/hello modules
+	make -C /lib/modules/$(shell uname -r)/build M=/home/adrien/dev/sentinel modules
 	
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=/home/adrien/dev/hello clean
+	make -C /lib/modules/$(shell uname -r)/build M=/home/adrien/dev/sentinel clean
