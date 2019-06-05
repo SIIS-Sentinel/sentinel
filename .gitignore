@@ -1,0 +1,12 @@
+# VSCode
+.vscode/
+
+# Build artifacts
+.hello*
+hello.o
+hello.ko
+hello.mod*
+Module.symvers
+modules.order
+.cache.mk
+.tmp_versions/
