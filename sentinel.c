@@ -19,8 +19,8 @@
 #include <linux/sysinfo.h>
 
 #define procfs_name "sentinel"
-#define MESSAGE "Welcome to Sentinel\n\0"
-#define BUF_SIZE 32
+#define MESSAGE "Welcome to Sentinel\0"
+#define BUF_SIZE 64
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
@@ -34,41 +34,56 @@ static char* msg_ptr;
 static long int msg_len;
 static int max_iterations = 10;
 
+// Called when /proc/sentinel is read
+// Args:
+//  file: not sure yet (file desc of the /proc/sentinel file?)
+//  buffer: array where the data should be copied to
+//  len: length of the buffer
+//  offset: offset where the read should start at (here used as a counter)
+// Return value:
+//  number of bytes copied in the the buffer. The function keeps being called until the number is 0
 ssize_t procfile_read(struct file* file, char __user* buffer, size_t len, loff_t* offset)
 {
-    // char __user* ptr;
-    // unsigned long retval;
-    int bytes_read = 0;
+    int bytes_copied = 0;
+    char counter_char[BUF_SIZE];
     printk(KERN_INFO "Read handler of Sentinel called\n");
     printk(KERN_INFO "Length: %ld, offset: %lld\n", len, *offset);
 
-    // Reset the message counter if necessary
-    if (*msg_ptr == 0) {
-        msg_ptr = message;
-    }
-
-    // Verify if we have sent the messahe enough times
-    if ((*offset) / msg_len == max_iterations) {
+    // Verify if we have sent the message enough times
+    if (*offset == max_iterations) {
         return 0;
     }
 
-    // Copy the message once
-    while (len && *msg_ptr) {
-        put_user(*(msg_ptr)++, buffer++);
-        len--;
-        bytes_read++;
-        (*offset)++;
-    }
+    // Copy the message
+    copy_to_user(buffer, message, msg_len);
+    bytes_copied += msg_len;
 
-    printk(KERN_INFO "Number of bytes copied: %d", bytes_read);
-    return bytes_read;
+    // Copy the counter
+    printk(KERN_INFO "Copying offset with value %lld\n", *offset);
+    sprintf(counter_char, ", offset: %lld\n", *offset);
+    copy_to_user(buffer + bytes_copied, counter_char, strlen(counter_char));
+    bytes_copied += strlen(counter_char);
+    (*offset)++;
+
+    printk(KERN_INFO "Number of bytes copied: %d", bytes_copied);
+    return bytes_copied;
 }
 
+// Called when /proc/sentinel is written to
+// Args:
+//  file: not sure yet (file desc of the /proc/sentinel file?)
+//  buffer: array where the data is located
+//  len: length of the contents (in bytes, including a \0 if present)
+//  offset: offset where the last write stopped
+// Return value:
+//  number of bytes copied from the buffer. The function keeps being called until out == len
 ssize_t procfile_write(struct file* file, const char __user* buffer, size_t len, loff_t* offset)
 {
     printk(KERN_INFO "Write handler of Sentinel called\n");
-    printk(KERN_ALERT "This device does not support write operations\n");
-    return len;
+    printk(KERN_INFO "Length: %ld, offset: %lld\n", len, *offset);
+    // printk(KERN_ALERT "This device does not support write operations\n");
+    (*offset)++;
+    return 1;
 }
 
 int output_memory_use(void)
