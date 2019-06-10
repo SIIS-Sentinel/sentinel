@@ -15,6 +15,7 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/swap.h>
 #include <linux/sysinfo.h>
 
@@ -32,6 +33,8 @@ struct proc_dir_entry* proc_file;
 static char message[BUF_SIZE];
 static char* msg_ptr;
 static long int msg_len;
+static long int counter;
+static long int max_iter = 1000;
 
 // Called by procfile_read() to copy some data into the user buffer
 // Args:
@@ -142,10 +145,75 @@ int output_memory_use(void)
     return 0;
 }
 
-static struct file_operations fops = {
+static void* procfile_start(struct seq_file* seq, loff_t* pos)
+{
+    printk(KERN_INFO "Entering procfile_start with pos==%lld\n", *pos);
+    if (*pos == 0) {
+        // If we are at the start of the file, return &counter
+        counter = 0;
+        return &counter;
+    } else if (*pos < max_iter) {
+        // We are in the file, keep going
+        return &counter;
+    } else {
+        // We are at the end of the file, stop
+        *pos = 0;
+        return NULL;
+    }
+}
+static void* procfile_next(struct seq_file* seq, void* v, loff_t* pos)
+{
+    // Print the entire data
+    long int* iterator = (long int*)v;
+    printk(KERN_INFO "Entering procfile_next\n");
+    ++(*iterator);
+    ++(*pos);
+    if (*pos == max_iter) {
+        printk(KERN_INFO "Stopping due to *pos==%ld\n", max_iter);
+        return NULL;
+    } else {
+        printk(KERN_INFO "Proceeding\n");
+        return iterator;
+    }
+}
+
+static void procfile_stop(struct seq_file* seq, void* v)
+{
+    // Nothing to do here
+    printk(KERN_INFO "Entering procfile_stop\n");
+    return;
+}
+
+static int procfile_show(struct seq_file* seq, void* v)
+{
+    // Print the iterator
+    long int* tmp_v = (long int*)v;
+    printk(KERN_INFO "Entering procfile_show");
+    seq_printf(seq, "Value of counter: %ld\n", *tmp_v);
+    return 0;
+}
+
+// Seq file ops
+static struct seq_operations seq_ops = {
+    .start = procfile_start,
+    .next = procfile_next,
+    .stop = procfile_stop,
+    .show = procfile_show
+};
+
+// Opens the seq file for future operations, and returns a file descriptor to it
+static int procfs_open(struct inode* inode, struct file* file)
+{
+    return seq_open(file, &seq_ops);
+}
+
+// File ops struct
+static struct file_operations f_ops = {
     .owner = THIS_MODULE,
-    .read = procfile_read,
-    .write = procfile_write
+    .open = procfs_open,
+    .read = seq_read,
+    .llseek = seq_lseek,
+    .release = seq_release
 };
 
 static int __init hello(void)
@@ -153,7 +221,7 @@ static int __init hello(void)
     int i;
     printk(KERN_INFO "Hello world %d\n", data);
     // Create the proc file
-    proc_file = proc_create(procfs_name, 0444, NULL, &fops);
+    proc_file = proc_create(procfs_name, 0444, NULL, &f_ops);
     for (i = 0; i < strlen(MESSAGE); i++) {
         message[i] = MESSAGE[i];
     }

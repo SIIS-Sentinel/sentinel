@@ -49,7 +49,7 @@ static void* my_seq_next(struct seq_file* s, void* v, loff_t* pos)
     unsigned long* tmp_v = (unsigned long*)v;
     (*tmp_v)++;
     (*pos)++;
-    if (*tmp_v == 5) {
+    if (*tmp_v == 10000) {
         return NULL;
     } else {
         return tmp_v;
