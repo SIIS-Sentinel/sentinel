@@ -8,6 +8,8 @@
 #define __KERNEL__
 #endif
 
+#include <linux/cpu.h>
+#include <linux/cpufreq.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/kallsyms.h>
@@ -20,8 +22,6 @@
 #include <linux/sysinfo.h>
 
 #define procfs_name "sentinel"
-#define MESSAGE "Welcome to Sentinel\n"
-#define BUF_SIZE 64
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
@@ -36,25 +36,49 @@ static void show_val_kb(struct seq_file* seq, const char* s, unsigned long num)
     seq_printf(seq, "%s:\t%*ld kB\n", s, 8, num);
 }
 
+static void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, struct cpuinfo_x86 cinfo)
+{
+    unsigned int freq;
+    if (cpu_has(&cinfo, X86_FEATURE_TSC)) {
+        freq = cpufreq_quick_get(cpu_id);
+        if (!freq)
+            freq = cpu_khz;
+        seq_printf(seq, "CPU frequency:\t %u.%03u MHz\n", freq / 1000, (freq % 1000));
+    }
+}
+
 static int single_show(struct seq_file* seq, void* v)
 {
     struct sysinfo info;
+    struct cpuinfo_x86 cinfo;
+    loff_t cpu_id;
     void (*si_swapinfo)(struct sysinfo*);
     printk(KERN_INFO "Read handler of Sentinel called\n");
     printk(KERN_INFO "Buffer size: %ld\n", seq->size);
 
-    // Gather the data
+    // Header
+    seq_printf(seq, "Welcome to Sentinel\n");
+
+    // Memory
     si_swapinfo = (void (*)(struct sysinfo*))kallsyms_lookup_name("si_swapinfo");
     si_meminfo(&info);
     si_swapinfo(&info);
-
-    seq_printf(seq, "Welcome to Sentinel\n");
-    // Copy the total memory
     show_val_kb(seq, "Total memory", info.totalram);
-    // Copy the free memory
     show_val_kb(seq, "Free memory", info.freeram);
-    // Copy the total memory
     show_val_kb(seq, "Used memory", info.totalram - info.freeram);
+    show_val_kb(seq, "Total swap", info.totalswap);
+    show_val_kb(seq, "Free swap", info.freeswap);
+    show_val_kb(seq, "Used swap", info.totalswap - info.freeswap);
+
+    // CPU
+    cpu_id = 0;
+    while (cpu_id < nr_cpu_ids) {
+        // Get CPU data from ID
+        cinfo = cpu_data(cpu_id);
+        show_cpu_freq(seq, cpu_id, cinfo);
+        // Get next valid ID
+        cpu_id = cpumask_next(cpu_id, cpu_online_mask);
+    }
     return 0;
 }
 
