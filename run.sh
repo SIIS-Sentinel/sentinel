@@ -1,3 +1,3 @@
-rmmod sentinel
-insmod sentinel.ko
-cat /proc/sentinel
+rmmod mod_sentinel
+insmod mod_sentinel.ko
+cat /proc/sentinel/single
