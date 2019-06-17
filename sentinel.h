@@ -62,5 +62,6 @@ struct proc_dir_entry* proc_file_full;
 uint32_t data_list_len;
 struct list_head* buf;
 LIST_HEAD(data_list);
+struct timer_list timer;
 
 #endif // SENTINEL_H

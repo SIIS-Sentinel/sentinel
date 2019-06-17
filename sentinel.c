@@ -10,12 +10,14 @@
 
 #include <linux/fs.h>
 #include <linux/init.h>
+#include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/time.h>
+#include <linux/timer.h>
 
 #include "sentinel.h"
 #include "sentinel_helper.h"
@@ -86,12 +88,21 @@ static int procfs_open_single(struct inode* inode, struct file* file)
     return single_open(file, single_show, NULL);
 }
 
+void timer_handler(struct timer_list* timer)
+{
+    printk(KERN_INFO "Timer handler called\n");
+    return;
+}
+
 static int __init hello(void)
 {
     printk(KERN_INFO "Hello world\n");
     proc_dir = proc_mkdir(procfs_dir_name, NULL);
     proc_file_single = proc_create(procfs_name_single, 0444, proc_dir, &f_ops_single);
     proc_file_full = proc_create(procfs_name_full, 0444, proc_dir, &f_ops_full);
+    // Create and start timer
+    timer_setup(&timer, timer_handler, 0);
+    timer.expires = jiffies + (1 * HZ);
     return 0;
 }
 
