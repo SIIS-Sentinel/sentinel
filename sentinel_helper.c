@@ -15,12 +15,25 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 #include <linux/swap.h>
 #include <linux/sysinfo.h>
 
 #include "sentinel_helper.h"
 
 #define __NO_VERSION__
+
+data_t* create_data_node(struct list_head* list)
+{
+    data_t* data;
+    data = kmalloc(sizeof(data_t), GFP_KERNEL);
+    if (!data) {
+        return NULL;
+    }
+    INIT_LIST_HEAD(&data->list);
+    list_add_tail(&data->list, list);
+    return data;
+}
 
 void show_time(struct seq_file* seq, time_t secs)
 {
@@ -44,9 +57,12 @@ void populate_data(data_t* data)
     loff_t cpu_id;
     unsigned int freq;
     void (*si_swapinfo)(struct sysinfo*);
+    struct timespec64 tv;
 
     // Time
-    data->time = ktime_get_real_seconds();
+    ktime_get_real_ts64(&tv);
+    data->secs = tv.tv_sec;
+    data->nsecs = tv.tv_nsec;
     // Memory data
     si_swapinfo = (void (*)(struct sysinfo*))kallsyms_lookup_name("si_swapinfo");
     si_meminfo(&info);
@@ -75,11 +91,11 @@ void populate_data(data_t* data)
     return;
 }
 
-void print_data(struct seq_file* seq, const data_t data)
+void print_data_verbose(struct seq_file* seq, const data_t data)
 {
     loff_t cpu_id;
     // Time
-    show_time(seq, data.time);
+    show_time(seq, data.secs);
     // Memory
     show_val_kb(seq, "Total memory", data.totalram);
     show_val_kb(seq, "Free memory", data.freeram);
@@ -95,4 +111,20 @@ void print_data(struct seq_file* seq, const data_t data)
         cpu_id++;
     }
     return;
+}
+
+void print_data_short(struct seq_file* seq, struct list_head* list, void* v)
+{
+    data_t* tmp;
+    if (v == list) {
+        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs\n");
+    } else {
+        tmp = list_entry(v, data_t, list);
+        seq_printf(seq,
+            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u\n",
+            tmp->secs,
+            tmp->totalram, tmp->freeram, tmp->usedram,
+            tmp->totalswap, tmp->freeswap, tmp->usedswap,
+            tmp->nb_cpus);
+    }
 }

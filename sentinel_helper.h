@@ -20,7 +20,8 @@
 #define MAX_NR_CPU 32
 
 typedef struct hardware_data {
-    time64_t time;
+    long nsecs;
+    time64_t secs;
     unsigned long totalram;
     unsigned long freeram;
     unsigned long usedram;
@@ -32,10 +33,12 @@ typedef struct hardware_data {
     struct list_head list;
 } data_t;
 
+data_t* create_data_node(struct list_head* list);
 void show_time(struct seq_file* seq, time_t secs);
 void show_val_kb(struct seq_file* seq, const char* s, unsigned long num);
 void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq);
 void populate_data(data_t* data);
-void print_data(struct seq_file* seq, const data_t data);
+void print_data_verbose(struct seq_file* seq, const data_t data);
+void print_data_short(struct seq_file* seq, struct list_head* list, void* v);
 
 #endif // SENTINEL_HERLER_H
