@@ -14,6 +14,7 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/slab.h>
 #include <linux/time.h>
 
 #include "sentinel.h"
@@ -26,15 +27,22 @@ MODULE_VERSION("1.0");
 
 static int single_show(struct seq_file* seq, void* v)
 {
-    data_t data;
+    data_t* data;
+    data = kmalloc(sizeof(data_t), GFP_KERNEL);
+    if (!data) {
+        printk(KERN_ERR "Failed to allocate memory for the data\n");
+        return -1;
+    }
+    INIT_LIST_HEAD(&data->list);
+    list_add_tail(&data_list, &data->list);
     printk(KERN_INFO "Read handler of Sentinel called\n");
     printk(KERN_INFO "Buffer size: %ld\n", seq->size);
     // Print a header
     seq_printf(seq, "Welcome to Sentinel\n");
     // Get the data
-    populate_data(&data);
+    populate_data(data);
     // Print the data
-    print_data(seq, data);
+    print_data(seq, *data);
     return 0;
 }
 
@@ -54,6 +62,12 @@ static int __init hello(void)
 
 static void __exit goodbye(void)
 {
+    data_t *pos, *next;
+    list_for_each_entry_safe(pos, next, &data_list, list)
+    {
+        list_del(&pos->list);
+        kfree(pos);
+    }
     proc_remove(proc_file_single);
     proc_remove(proc_dir);
     printk(KERN_INFO "Goodbye world\n");

@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/module.h>
+#include <linux/slab.h>
 #include <linux/time.h>
 
 #define procfs_dir_name "sentinel"
@@ -37,5 +38,6 @@ static struct file_operations f_ops = {
 struct proc_dir_entry* proc_dir;
 struct proc_dir_entry* proc_file_single;
 struct proc_dir_entry* proc_file_iter;
+LIST_HEAD(data_list);
 
 #endif // SENTINEL_H
