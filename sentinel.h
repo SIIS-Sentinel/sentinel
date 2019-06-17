@@ -21,7 +21,7 @@
 #define procfs_dir_name "sentinel"
 #define procfs_name_single "single"
 #define procfs_name_full "full"
-#define TIMER_DELAY 1
+#define TIMER_DELAY 5
 
 static void* procfile_start(struct seq_file* seq, loff_t* pos);
 static void* procfile_next(struct seq_file* seq, void* v, loff_t* pos);

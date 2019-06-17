@@ -61,7 +61,7 @@ static int procfile_show(struct seq_file* seq, void* v)
 static int single_show(struct seq_file* seq, void* v)
 {
     data_t* data;
-    data = create_data_node(&data_list);
+    data = create_data_node(&data_list, GFP_KERNEL);
     if (!data) {
         printk(KERN_ERR "Failed to allocate memory for the data\n");
         return -1;
@@ -96,7 +96,7 @@ static void timer_handler(struct timer_list* timer)
     timer->expires = jiffies + (TIMER_DELAY * HZ);
     add_timer(timer);
     // Add a new data node
-    data = create_data_node(&data_list);
+    data = create_data_node(&data_list, GFP_ATOMIC);
     populate_data(data);
     return;
 }

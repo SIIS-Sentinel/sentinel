@@ -33,7 +33,7 @@ typedef struct hardware_data {
     struct list_head list;
 } data_t;
 
-data_t* create_data_node(struct list_head* list);
+data_t* create_data_node(struct list_head* list, gfp_t flag);
 void show_time(struct seq_file* seq, time_t secs);
 void show_val_kb(struct seq_file* seq, const char* s, unsigned long num);
 void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq);

@@ -23,10 +23,10 @@
 
 #define __NO_VERSION__
 
-data_t* create_data_node(struct list_head* list)
+data_t* create_data_node(struct list_head* list, gfp_t flag)
 {
     data_t* data;
-    data = kmalloc(sizeof(data_t), GFP_KERNEL);
+    data = kmalloc(sizeof(data_t), flag);
     if (!data) {
         return NULL;
     }
