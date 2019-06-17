@@ -21,6 +21,7 @@
 #define procfs_dir_name "sentinel"
 #define procfs_name_single "single"
 #define procfs_name_full "full"
+#define TIMER_DELAY 1
 
 static void* procfile_start(struct seq_file* seq, loff_t* pos);
 static void* procfile_next(struct seq_file* seq, void* v, loff_t* pos);
@@ -29,6 +30,7 @@ static void procfile_stop(struct seq_file* seq, void* v);
 static int single_show(struct seq_file* seq, void* v);
 static int procfs_open_full(struct inode* inode, struct file* file);
 static int procfs_open_single(struct inode* inode, struct file* file);
+static void timer_handler(struct timer_list* timer);
 static int __init hello(void);
 static void __exit goodbye(void);
 
@@ -62,6 +64,6 @@ struct proc_dir_entry* proc_file_full;
 uint32_t data_list_len;
 struct list_head* buf;
 LIST_HEAD(data_list);
-struct timer_list timer;
+struct timer_list data_timer;
 
 #endif // SENTINEL_H

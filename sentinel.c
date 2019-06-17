@@ -88,9 +88,16 @@ static int procfs_open_single(struct inode* inode, struct file* file)
     return single_open(file, single_show, NULL);
 }
 
-void timer_handler(struct timer_list* timer)
+static void timer_handler(struct timer_list* timer)
 {
+    data_t* data;
     printk(KERN_INFO "Timer handler called\n");
+    // Reset the timer
+    timer->expires = jiffies + (TIMER_DELAY * HZ);
+    add_timer(timer);
+    // Add a new data node
+    data = create_data_node(&data_list);
+    populate_data(data);
     return;
 }
 
@@ -101,8 +108,9 @@ static int __init hello(void)
     proc_file_single = proc_create(procfs_name_single, 0444, proc_dir, &f_ops_single);
     proc_file_full = proc_create(procfs_name_full, 0444, proc_dir, &f_ops_full);
     // Create and start timer
-    timer_setup(&timer, timer_handler, 0);
-    timer.expires = jiffies + (1 * HZ);
+    timer_setup(&data_timer, timer_handler, 0);
+    data_timer.expires = jiffies + (TIMER_DELAY * HZ);
+    add_timer(&data_timer);
     return 0;
 }
 
@@ -117,6 +125,7 @@ static void __exit goodbye(void)
     proc_remove(proc_file_single);
     proc_remove(proc_file_full);
     proc_remove(proc_dir);
+    del_timer(&data_timer);
     printk(KERN_INFO "Goodbye world\n");
 }
 
