@@ -40,5 +40,6 @@ void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq);
 void populate_data(data_t* data);
 void print_data_verbose(struct seq_file* seq, const data_t data);
 void print_data_short(struct seq_file* seq, struct list_head* list, void* v);
+void free_list(struct list_head* list_head);
 
 #endif // SENTINEL_HERLER_H

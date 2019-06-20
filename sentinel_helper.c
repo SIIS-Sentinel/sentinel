@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/kallsyms.h>
 #include <linux/kernel.h>
+#include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -127,4 +128,15 @@ void print_data_short(struct seq_file* seq, struct list_head* list, void* v)
             tmp->totalswap, tmp->freeswap, tmp->usedswap,
             tmp->nb_cpus);
     }
+}
+
+void free_list(struct list_head* list_head)
+{
+    data_t *pos, *next;
+    list_for_each_entry_safe(pos, next, list_head, list)
+    {
+        list_del(&pos->list);
+        kfree(pos);
+    }
+    return;
 }

@@ -34,6 +34,7 @@ static void* procfile_start(struct seq_file* seq, loff_t* pos)
     data = seq_list_start_head(&data_list, *pos);
     if (data == NULL) {
         *pos = 0;
+        free_list(&data_list);
     }
     return data;
 }
@@ -116,12 +117,7 @@ static int __init hello(void)
 
 static void __exit goodbye(void)
 {
-    data_t *pos, *next;
-    list_for_each_entry_safe(pos, next, &data_list, list)
-    {
-        list_del(&pos->list);
-        kfree(pos);
-    }
+    free_list(&data_list);
     proc_remove(proc_file_single);
     proc_remove(proc_file_full);
     proc_remove(proc_dir);
