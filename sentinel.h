@@ -65,5 +65,6 @@ uint32_t data_list_len;
 struct list_head* buf;
 LIST_HEAD(data_list);
 struct timer_list data_timer;
+int list_len;
 
 #endif // SENTINEL_H
