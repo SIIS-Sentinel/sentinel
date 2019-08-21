@@ -24,7 +24,7 @@
 
 #define __NO_VERSION__
 
-data_t* create_data_node(struct list_head* list, gfp_t flag)
+data_t* create_data_node(struct list_head* list, int* list_len, gfp_t flag)
 {
     data_t* data;
     data = kmalloc(sizeof(data_t), flag);
@@ -33,6 +33,14 @@ data_t* create_data_node(struct list_head* list, gfp_t flag)
     }
     INIT_LIST_HEAD(&data->list);
     list_add_tail(&data->list, list);
+    // Keep the list at a fixed max size
+    (*list_len)++;
+    if (*list_len >= MAX_LIST_LEN) {
+        data = list_entry(list->next, data_t, list);
+        list_del(&data->list);
+        kfree(data);
+        (*list_len)--;
+    }
     return data;
 }
 
