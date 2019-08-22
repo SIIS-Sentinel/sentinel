@@ -14,11 +14,11 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/seq_file.h>
 #include <linux/time.h>
 
 #define MAX_NR_CPU 32
 #define MAX_LIST_LEN 32
+#define TIMER_DELAY 5
 
 typedef struct hardware_data {
     long nsecs;
