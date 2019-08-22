@@ -8,8 +8,6 @@
 #define __KERNEL__
 #endif
 
-#define PROCFS
-
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/jiffies.h>
@@ -25,31 +23,14 @@
 #include "sentinel.h"
 #include "sentinel_helper.h"
 #include "sentinel_procfs.h"
+#include "sentinel_sysfs.h"
+
+#define SYSFS
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adrien Cosson");
 MODULE_DESCRIPTION("Hardware monitoring module");
 MODULE_VERSION("2.0");
-
-struct kobject* sysfs_entry;
-struct attribute attr;
-
-static ssize_t sentinel_sysfs_show(struct kobject* kobj, struct attribute* attr, char* buf)
-{
-    printk(KERN_INFO "sysfs show called\n");
-    return sprintf(buf, "1\n");
-}
-
-static ssize_t sentinel_sysfs_store(struct kobject* kobj, struct attribute* attr, const char* buf, size_t len)
-{
-    printk(KERN_INFO "sysfs show called\n");
-    return -EIO;
-}
-
-static const struct sysfs_ops sentinel_sysops = {
-    .show = sentinel_sysfs_show,
-    .store = sentinel_sysfs_store,
-};
 
 static int __init hello(void)
 {
@@ -63,6 +44,7 @@ static int __init hello(void)
     add_timer(&data_timer);
     list_len = 0;
 #endif
+#ifdef SYSFS
     sysfs_entry = kobject_create_and_add("sentinel", kernel_kobj);
     sysfs_entry->ktype->sysfs_ops = &sentinel_sysops;
     if (!sysfs_entry) {
@@ -71,6 +53,7 @@ static int __init hello(void)
     attr.name = "sentinel_entry";
     attr.mode = S_IRUGO;
     sysfs_create_file(sysfs_entry, &attr);
+#endif
     printk(KERN_INFO "Sentinel initialized\n");
     return 0;
 }
@@ -84,8 +67,10 @@ static void __exit goodbye(void)
     proc_remove(proc_dir);
     del_timer(&data_timer);
 #endif
+#ifdef SYSFS
     sysfs_remove_file(sysfs_entry, &attr);
     kobject_del(sysfs_entry);
+#endif
     printk(KERN_INFO "Sentinel terminated\n");
 }
 
