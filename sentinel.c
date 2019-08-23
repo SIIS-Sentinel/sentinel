@@ -25,6 +25,7 @@
 #include "sentinel_procfs.h"
 #include "sentinel_sysfs.h"
 
+// #define PROCFS
 #define SYSFS
 
 MODULE_LICENSE("GPL");
@@ -34,6 +35,7 @@ MODULE_VERSION("2.0");
 
 static int __init hello(void)
 {
+    int retval;
 #ifdef PROCFS
     proc_dir = proc_mkdir(procfs_dir_name, NULL);
     proc_file_single = proc_create(procfs_name_single, 0444, proc_dir, &f_ops_single);
@@ -46,13 +48,18 @@ static int __init hello(void)
 #endif
 #ifdef SYSFS
     sysfs_entry = kobject_create_and_add("sentinel", kernel_kobj);
-    sysfs_entry->ktype->sysfs_ops = &sentinel_sysops;
-    if (!sysfs_entry) {
-        return -ENOMEM;
-    }
-    attr.name = "sentinel_entry";
-    attr.mode = S_IRUGO;
-    sysfs_create_file(sysfs_entry, &attr);
+    init_attr_group();
+    retval = sysfs_create_group(sysfs_entry, &attr_group);
+    // sysfs_entry->ktype->sysfs_ops = &sentinel_sysops;
+    // if (!sysfs_entry) {
+    //     return -ENOMEM;
+    // }
+    // attr.name = "sentinel_entry";
+    // attr.mode = S_IRUGO;
+    // sysfs_create_file(sysfs_entry, &attr);
+    // Create a struct attribute_group, and store the array in its attrs member
+    // Call sysfs_create_group with the kobject and the struct attribute_group
+    // If the return code is not 0, call kobject_put to abort it all, and deallocate everything
 #endif
     printk(KERN_INFO "Sentinel initialized\n");
     return 0;
@@ -68,8 +75,10 @@ static void __exit goodbye(void)
     del_timer(&data_timer);
 #endif
 #ifdef SYSFS
-    sysfs_remove_file(sysfs_entry, &attr);
-    kobject_del(sysfs_entry);
+    // sysfs_remove_file(sysfs_entry, &attr);
+    kobject_put(sysfs_entry);
+    del_attr_group();
+    // Call kobject_put to cleanup stuff easily
 #endif
     printk(KERN_INFO "Sentinel terminated\n");
 }
