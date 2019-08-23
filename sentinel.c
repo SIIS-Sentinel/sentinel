@@ -8,11 +8,10 @@
 #define __KERNEL__
 #endif
 
-#include <linux/fs.h>
+// #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
-#include <linux/kobject.h>
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/slab.h>
@@ -58,7 +57,6 @@ static int __init hello(void)
     // attr.mode = S_IRUGO;
     // sysfs_create_file(sysfs_entry, &attr);
     // Create a struct attribute_group, and store the array in its attrs member
-    // Call sysfs_create_group with the kobject and the struct attribute_group
     // If the return code is not 0, call kobject_put to abort it all, and deallocate everything
 #endif
     printk(KERN_INFO "Sentinel initialized\n");
