@@ -14,7 +14,6 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/time.h>
 
 #define MAX_NR_CPU 32
 #define MAX_LIST_LEN 32
