@@ -11,12 +11,13 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/sched/loadavg.h>
 #include <linux/slab.h>
 
 #include "sentinel_helper.h"
 #include "sentinel_sysfs.h"
 
-#define NB_FILES_NOT_CPU 8
+#define NB_FILES_NOT_CPU 11
 
 int nb_files;
 struct kobject* sysfs_entry;
@@ -57,6 +58,12 @@ ssize_t sentinel_sysfs_show(struct kobject* kobj, struct kobj_attribute* attr, c
         return sprintf(buf, "%ld\n", data.usedswap << (PAGE_SHIFT - 10));
     } else if (strcmp(attr->attr.name, "nb_processes") == 0) {
         return sprintf(buf, "%u\n", data.nb_processes);
+    } else if (strcmp(attr->attr.name, "load_1m") == 0) {
+        return sprintf(buf, "%lu.%02lu\n", LOAD_INT(data.loads[0]), LOAD_FRAC(data.loads[0]));
+    } else if (strcmp(attr->attr.name, "load_5m") == 0) {
+        return sprintf(buf, "%lu.%02lu\n", LOAD_INT(data.loads[1]), LOAD_FRAC(data.loads[1]));
+    } else if (strcmp(attr->attr.name, "load_15m") == 0) {
+        return sprintf(buf, "%lu.%02lu\n", LOAD_INT(data.loads[2]), LOAD_FRAC(data.loads[2]));
     }
     return -EIO;
 }
@@ -109,6 +116,15 @@ uint32_t init_attr_group(void)
                 break;
             case 7:
                 sprintf(buf, "nb_processes");
+                break;
+            case 8:
+                sprintf(buf, "load_1m");
+                break;
+            case 9:
+                sprintf(buf, "load_5m");
+                break;
+            case 10:
+                sprintf(buf, "load_15m");
                 break;
             default:
                 printk(KERN_ERR "WTF\n");

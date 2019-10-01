@@ -16,6 +16,7 @@
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/sched/loadavg.h>
 #include <linux/sched/signal.h>
 #include <linux/slab.h>
 #include <linux/swap.h>
@@ -61,6 +62,11 @@ void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq)
     seq_printf(seq, "CPU %lld frequency:\t %u.%03u MHz\n", cpu_id, freq / 1000, (freq % 1000));
 }
 
+void show_loads(struct seq_file* seq, const unsigned long* loads)
+{
+    seq_printf(seq, "CPU loads:\t %ld\t%ld\t%ld", loads[0], loads[1], loads[2]);
+}
+
 void show_processes(struct seq_file* seq, unsigned int nb_processes)
 {
     seq_printf(seq, "Number of processes:\t %u\n", nb_processes);
@@ -72,6 +78,7 @@ void populate_data(data_t* data)
     loff_t cpu_id;
     unsigned int freq;
     void (*si_swapinfo)(struct sysinfo*);
+    void (*get_avenrun)(unsigned long*, unsigned long, int);
     struct timespec64 tv;
     struct task_struct* task;
 
@@ -103,7 +110,10 @@ void populate_data(data_t* data)
         cpu_id = cpumask_next(cpu_id, cpu_online_mask);
         data->nb_cpus++;
     }
-    // Get running tasks data
+    // Get CPU average loads
+    get_avenrun = (void (*)(unsigned long*, unsigned long, int))kallsyms_lookup_name("get_avenrun");
+    get_avenrun(data->loads, FIXED_1 / 200, 0);
+    // Get number of tasks
     data->nb_processes = 0;
     for_each_process(task)
     {
@@ -131,6 +141,8 @@ void print_data_verbose(struct seq_file* seq, const data_t data)
         show_cpu_freq(seq, cpu_id, data.cpu_freq[cpu_id]);
         cpu_id++;
     }
+    // CPU load
+    show_loads(seq, data.loads);
 
     // Processes
     show_processes(seq, data.nb_processes);
@@ -141,15 +153,15 @@ void print_data_short(struct seq_file* seq, struct list_head* list, void* v)
 {
     data_t* tmp;
     if (v == list) {
-        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs, #Processes\n");
+        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs, #Processes, Load (1m), Load (5m), Load (15m)\n");
     } else {
         tmp = list_entry(v, data_t, list);
         seq_printf(seq,
-            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u, %u\n",
+            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u, %u, %ld, %ld, %ld\n",
             tmp->secs,
             tmp->totalram, tmp->freeram, tmp->usedram,
             tmp->totalswap, tmp->freeswap, tmp->usedswap,
-            tmp->nb_cpus, tmp->nb_processes);
+            tmp->nb_cpus, tmp->nb_processes, tmp->loads[0], tmp->loads[1], tmp->loads[2]);
     }
 }
 
