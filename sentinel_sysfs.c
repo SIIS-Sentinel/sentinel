@@ -16,7 +16,7 @@
 #include "sentinel_helper.h"
 #include "sentinel_sysfs.h"
 
-#define NB_FILES_NOT_CPU 7
+#define NB_FILES_NOT_CPU 8
 
 int nb_files;
 struct kobject* sysfs_entry;
@@ -55,6 +55,8 @@ ssize_t sentinel_sysfs_show(struct kobject* kobj, struct kobj_attribute* attr, c
         return sprintf(buf, "%ld\n", data.freeswap << (PAGE_SHIFT - 10));
     } else if (strcmp(attr->attr.name, "used_swap") == 0) {
         return sprintf(buf, "%ld\n", data.usedswap << (PAGE_SHIFT - 10));
+    } else if (strcmp(attr->attr.name, "nb_processes") == 0) {
+        return sprintf(buf, "%u\n", data.nb_processes);
     }
     return -EIO;
 }
@@ -104,6 +106,9 @@ uint32_t init_attr_group(void)
                 break;
             case 6:
                 sprintf(buf, "used_swap");
+                break;
+            case 7:
+                sprintf(buf, "nb_processes");
                 break;
             default:
                 printk(KERN_ERR "WTF\n");

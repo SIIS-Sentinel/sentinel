@@ -16,6 +16,7 @@
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <linux/sched/signal.h>
 #include <linux/slab.h>
 #include <linux/swap.h>
 #include <linux/sysinfo.h>
@@ -60,6 +61,11 @@ void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq)
     seq_printf(seq, "CPU %lld frequency:\t %u.%03u MHz\n", cpu_id, freq / 1000, (freq % 1000));
 }
 
+void show_processes(struct seq_file* seq, unsigned int nb_processes)
+{
+    seq_printf(seq, "Number of processes:\t %u\n", nb_processes);
+}
+
 void populate_data(data_t* data)
 {
     struct sysinfo info;
@@ -67,6 +73,7 @@ void populate_data(data_t* data)
     unsigned int freq;
     void (*si_swapinfo)(struct sysinfo*);
     struct timespec64 tv;
+    struct task_struct* task;
 
     // Time
     ktime_get_real_ts64(&tv);
@@ -82,7 +89,6 @@ void populate_data(data_t* data)
     data->totalswap = info.totalswap;
     data->freeswap = info.freeswap;
     data->usedswap = info.totalswap - info.freeswap;
-
     // Get CPU data
     data->nb_cpus = 0;
     cpu_id = 0;
@@ -96,6 +102,12 @@ void populate_data(data_t* data)
         // Get next valid ID
         cpu_id = cpumask_next(cpu_id, cpu_online_mask);
         data->nb_cpus++;
+    }
+    // Get running tasks data
+    data->nb_processes = 0;
+    for_each_process(task)
+    {
+        data->nb_processes++;
     }
     return;
 }
@@ -119,6 +131,9 @@ void print_data_verbose(struct seq_file* seq, const data_t data)
         show_cpu_freq(seq, cpu_id, data.cpu_freq[cpu_id]);
         cpu_id++;
     }
+
+    // Processes
+    show_processes(seq, data.nb_processes);
     return;
 }
 
@@ -126,15 +141,15 @@ void print_data_short(struct seq_file* seq, struct list_head* list, void* v)
 {
     data_t* tmp;
     if (v == list) {
-        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs\n");
+        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs, #Processes\n");
     } else {
         tmp = list_entry(v, data_t, list);
         seq_printf(seq,
-            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u\n",
+            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u, %u\n",
             tmp->secs,
             tmp->totalram, tmp->freeram, tmp->usedram,
             tmp->totalswap, tmp->freeswap, tmp->usedswap,
-            tmp->nb_cpus);
+            tmp->nb_cpus, tmp->nb_processes);
     }
 }
 
