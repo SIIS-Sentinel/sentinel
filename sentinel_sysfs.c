@@ -17,7 +17,7 @@
 #include "sentinel_helper.h"
 #include "sentinel_sysfs.h"
 
-#define NB_FILES_NOT_CPU 12
+#define NB_FILES_NOT_CPU 17
 
 int nb_files;
 struct kobject* sysfs_entry;
@@ -66,6 +66,16 @@ ssize_t sentinel_sysfs_show(struct kobject* kobj, struct kobj_attribute* attr, c
         return sprintf(buf, "%lu.%02lu\n", LOAD_INT(data.loads[2]), LOAD_FRAC(data.loads[2]));
     } else if (strcmp(attr->attr.name, "tracked_pid") == 0) {
         return sprintf(buf, "%u\n", data.tracked_pid);
+    } else if (strcmp(attr->attr.name, "task_size") == 0) {
+        return sprintf(buf, "%lu\n", data.mm_size);
+    } else if (strcmp(attr->attr.name, "hiwater_rss") == 0) {
+        return sprintf(buf, "%lu\n", data.mm_hiwater_rss);
+    } else if (strcmp(attr->attr.name, "hiwater_vm") == 0) {
+        return sprintf(buf, "%lu\n", data.mm_hiwater_vm);
+    } else if (strcmp(attr->attr.name, "total_vm") == 0) {
+        return sprintf(buf, "%lu\n", data.mm_total_vm);
+    } else if (strcmp(attr->attr.name, "nb_fds") == 0) {
+        return sprintf(buf, "%u\n", data.nb_files);
     }
     return -EIO;
 }
@@ -136,6 +146,21 @@ uint32_t init_attr_group(void)
                 break;
             case 11:
                 sprintf(buf, "tracked_pid");
+                break;
+            case 12:
+                sprintf(buf, "task_size");
+                break;
+            case 13:
+                sprintf(buf, "hiwater_rss");
+                break;
+            case 14:
+                sprintf(buf, "hiwater_vm");
+                break;
+            case 15:
+                sprintf(buf, "total_vm");
+                break;
+            case 16:
+                sprintf(buf, "nb_fds");
                 break;
             default:
                 printk(KERN_ERR "WTF\n");

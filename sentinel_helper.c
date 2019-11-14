@@ -18,6 +18,7 @@
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 #include <linux/module.h>
+#include <linux/pid.h>
 #include <linux/sched.h>
 #include <linux/sched/loadavg.h>
 #include <linux/sched/signal.h>
@@ -197,15 +198,26 @@ void change_tracked_pid(const char* buf, size_t len)
 // given process information
 void get_process_data(uint32_t pid, data_t* data)
 {
+    int files_counter;
+    struct file* tmp_file;
     struct task_struct* task;
     struct mm_struct* mm;
     struct files_struct* files;
     struct fdtable* fdt;
-    return;
+
     task = pid_task(find_vpid(pid), PIDTYPE_PID);
+    if (task == NULL) {
+        printk(KERN_INFO "task fetch failed\n");
+        return;
+    }
     mm = task->mm;
     if (mm == NULL) {
         mm = task->active_mm;
+    }
+    if (mm == NULL) {
+        // Panic mode
+        printk(KERN_INFO "mm fetch failed\n");
+        return;
     }
     files = task->files;
     // Memory information
@@ -216,6 +228,13 @@ void get_process_data(uint32_t pid, data_t* data)
     // Files information
     rcu_read_lock();
     fdt = files_fdtable(files);
-    data->nb_files = sizeof(fdt->open_fds) / sizeof(unsigned long*);
+    files_counter = 0;
+    tmp_file = fdt->fd[0];
+    // I cannot believe this works
+    while (tmp_file != NULL) {
+        files_counter++;
+        tmp_file = fdt->fd[files_counter];
+    }
+    data->nb_files = files_counter;
     rcu_read_unlock();
 }
