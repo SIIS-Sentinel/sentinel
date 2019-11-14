@@ -10,12 +10,15 @@
 
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
+#include <linux/fdtable.h>
 #include <linux/init.h>
 #include <linux/kallsyms.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/mm.h>
+#include <linux/mm_types.h>
 #include <linux/module.h>
+#include <linux/sched.h>
 #include <linux/sched/loadavg.h>
 #include <linux/sched/signal.h>
 #include <linux/slab.h>
@@ -121,8 +124,10 @@ void populate_data(data_t* data)
     {
         data->nb_processes++;
     }
-    // Tracked PID
+    // Tracked PID value
     data->tracked_pid = tracked_pid;
+    // Tracked process data
+    get_process_data(data->tracked_pid, data);
     return;
 }
 
@@ -186,4 +191,31 @@ void change_tracked_pid(const char* buf, size_t len)
     if (kstrtou32(buf, 10, &tmp_pid) == 0) {
         tracked_pid = tmp_pid;
     }
+}
+
+// Fills out the relevant fields in data with the
+// given process information
+void get_process_data(uint32_t pid, data_t* data)
+{
+    struct task_struct* task;
+    struct mm_struct* mm;
+    struct files_struct* files;
+    struct fdtable* fdt;
+    return;
+    task = pid_task(find_vpid(pid), PIDTYPE_PID);
+    mm = task->mm;
+    if (mm == NULL) {
+        mm = task->active_mm;
+    }
+    files = task->files;
+    // Memory information
+    data->mm_size = mm->task_size;
+    data->mm_hiwater_rss = mm->hiwater_rss;
+    data->mm_hiwater_vm = mm->hiwater_vm;
+    data->mm_total_vm = mm->total_vm;
+    // Files information
+    rcu_read_lock();
+    fdt = files_fdtable(files);
+    data->nb_files = sizeof(fdt->open_fds) / sizeof(unsigned long*);
+    rcu_read_unlock();
 }
