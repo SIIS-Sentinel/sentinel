@@ -26,6 +26,8 @@
 
 #define __NO_VERSION__
 
+extern uint32_t tracked_pid;
+
 data_t* create_data_node(struct list_head* list, int* list_len, gfp_t flag)
 {
     data_t* data;
@@ -119,6 +121,8 @@ void populate_data(data_t* data)
     {
         data->nb_processes++;
     }
+    // Tracked PID
+    data->tracked_pid = tracked_pid;
     return;
 }
 
@@ -174,4 +178,12 @@ void free_list(struct list_head* list_head)
         kfree(pos);
     }
     return;
+}
+
+void change_tracked_pid(const char* buf, size_t len)
+{
+    uint32_t tmp_pid;
+    if (kstrtou32(buf, 10, &tmp_pid) == 0) {
+        tracked_pid = tmp_pid;
+    }
 }

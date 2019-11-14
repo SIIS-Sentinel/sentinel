@@ -32,9 +32,12 @@ MODULE_AUTHOR("Adrien Cosson");
 MODULE_DESCRIPTION("Hardware monitoring module");
 MODULE_VERSION("2.0");
 
+uint32_t tracked_pid;
+
 static int __init hello(void)
 {
     int retval;
+    tracked_pid = 0;
 #ifdef PROCFS
     proc_dir = proc_mkdir(procfs_dir_name, NULL);
     proc_file_single = proc_create(procfs_name_single, 0444, proc_dir, &f_ops_single);
