@@ -19,6 +19,9 @@
 
 #define NB_FILES_NOT_CPU 17
 
+#define LOAD_INT(x) ((x) >> FSHIFT)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+
 int nb_files;
 struct kobject* sysfs_entry;
 struct kobj_attribute* k_attrs;

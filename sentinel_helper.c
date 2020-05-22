@@ -108,9 +108,9 @@ void populate_data(data_t* data)
     while (cpu_id < nr_cpu_ids) {
         // Get CPU freq from ID
         freq = cpufreq_quick_get(cpu_id);
-        if (!freq) {
-            freq = cpu_khz;
-        }
+        // if (!freq) {
+        //     freq = cpu_khz;
+        // }
         data->cpu_freq[data->nb_cpus] = freq;
         // Get next valid ID
         cpu_id = cpumask_next(cpu_id, cpu_online_mask);
