@@ -21,7 +21,6 @@
 
 #include "sentinel.h"
 #include "sentinel_helper.h"
-#include "sentinel_procfs.h"
 #include "sentinel_sysfs.h"
 
 // #define PROCFS

@@ -15,7 +15,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 
-#include "sentinel_procfs.h"
 
 #define procfs_dir_name "sentinel"
 #define procfs_name_single "single"
