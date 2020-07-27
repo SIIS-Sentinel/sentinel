@@ -32,52 +32,7 @@
 
 extern uint32_t tracked_pid;
 
-data_t* create_data_node(struct list_head* list, int* list_len, gfp_t flag)
-{
-    data_t* data;
-    data = kmalloc(sizeof(data_t), flag);
-    if (!data) {
-        return NULL;
-    }
-    INIT_LIST_HEAD(&data->list);
-    list_add_tail(&data->list, list);
-    // Keep the list at a fixed max size
-    (*list_len)++;
-    if (*list_len >= MAX_LIST_LEN) {
-        data = list_entry(list->next, data_t, list);
-        list_del(&data->list);
-        kfree(data);
-        (*list_len)--;
-    }
-    return data;
-}
-
-void show_time(struct seq_file* seq, time_t secs)
-{
-    seq_printf(seq, "Measurement time:\t%ld s\n", secs);
-}
-
-void show_val_kb(struct seq_file* seq, const char* s, unsigned long num)
-{
-    num = num << (PAGE_SHIFT - 10);
-    seq_printf(seq, "%s:\t%*ld kB\n", s, 8, num);
-}
-
-void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq)
-{
-    seq_printf(seq, "CPU %lld frequency:\t %u.%03u MHz\n", cpu_id, freq / 1000, (freq % 1000));
-}
-
-void show_loads(struct seq_file* seq, const unsigned long* loads)
-{
-    seq_printf(seq, "CPU loads:\t %ld\t%ld\t%ld", loads[0], loads[1], loads[2]);
-}
-
-void show_processes(struct seq_file* seq, unsigned int nb_processes)
-{
-    seq_printf(seq, "Number of processes:\t %u\n", nb_processes);
-}
-
+// Fills the given data structure by gathering all the metrics from the kernel
 void populate_data(data_t* data)
 {
     struct sysinfo info;
@@ -92,6 +47,7 @@ void populate_data(data_t* data)
     ktime_get_real_ts64(&tv);
     data->secs = tv.tv_sec;
     data->nsecs = tv.tv_nsec;
+
     // Memory data
     si_swapinfo = (void (*)(struct sysinfo*))kallsyms_lookup_name("si_swapinfo");
     si_meminfo(&info);
@@ -102,12 +58,15 @@ void populate_data(data_t* data)
     data->totalswap = info.totalswap;
     data->freeswap = info.freeswap;
     data->usedswap = info.totalswap - info.freeswap;
-    // Get CPU data
+
+    // CPU number and frequencies
     data->nb_cpus = 0;
     cpu_id = 0;
     while (cpu_id < nr_cpu_ids) {
         // Get CPU freq from ID
         freq = cpufreq_quick_get(cpu_id);
+        // The lines below are needed on some systems, but make compilation fail on other
+        // TODO: determine how to handle that automaticallys
         // if (!freq) {
         //     freq = cpu_khz;
         // }
@@ -116,76 +75,26 @@ void populate_data(data_t* data)
         cpu_id = cpumask_next(cpu_id, cpu_online_mask);
         data->nb_cpus++;
     }
-    // Get CPU average loads
+    // CPU average loads
     get_avenrun = (void (*)(unsigned long*, unsigned long, int))kallsyms_lookup_name("get_avenrun");
     get_avenrun(data->loads, FIXED_1 / 200, 0);
-    // Get number of tasks
+
+    // Number of processes
     data->nb_processes = 0;
     for_each_process(task)
     {
         data->nb_processes++;
     }
+
     // Tracked PID value
     data->tracked_pid = tracked_pid;
+
     // Tracked process data
     get_process_data(data->tracked_pid, data);
     return;
 }
 
-void print_data_verbose(struct seq_file* seq, const data_t data)
-{
-    loff_t cpu_id;
-    // Time
-    show_time(seq, data.secs);
-    // Memory
-    show_val_kb(seq, "Total memory", data.totalram);
-    show_val_kb(seq, "Free memory", data.freeram);
-    show_val_kb(seq, "Used memory", data.usedram);
-    show_val_kb(seq, "Total swap", data.totalswap);
-    show_val_kb(seq, "Free swap", data.freeswap);
-    show_val_kb(seq, "Used swap", data.usedswap);
-
-    // CPU
-    cpu_id = 0;
-    while (cpu_id < data.nb_cpus) {
-        show_cpu_freq(seq, cpu_id, data.cpu_freq[cpu_id]);
-        cpu_id++;
-    }
-    // CPU load
-    show_loads(seq, data.loads);
-
-    // Processes
-    show_processes(seq, data.nb_processes);
-    return;
-}
-
-void print_data_short(struct seq_file* seq, struct list_head* list, void* v)
-{
-    data_t* tmp;
-    if (v == list) {
-        seq_printf(seq, "Time (s), Total RAM, Free RAM, Used RAM, Total Swap, Free Swap, Used Swap, #CPUs, #Processes, Load (1m), Load (5m), Load (15m)\n");
-    } else {
-        tmp = list_entry(v, data_t, list);
-        seq_printf(seq,
-            "%lld,  %lu, %lu, %lu, %lu, %lu, %lu, %u, %u, %ld, %ld, %ld\n",
-            tmp->secs,
-            tmp->totalram, tmp->freeram, tmp->usedram,
-            tmp->totalswap, tmp->freeswap, tmp->usedswap,
-            tmp->nb_cpus, tmp->nb_processes, tmp->loads[0], tmp->loads[1], tmp->loads[2]);
-    }
-}
-
-void free_list(struct list_head* list_head)
-{
-    data_t *pos, *next;
-    list_for_each_entry_safe(pos, next, list_head, list)
-    {
-        list_del(&pos->list);
-        kfree(pos);
-    }
-    return;
-}
-
+// Converts the given PID from char[] to int, and stores it
 void change_tracked_pid(const char* buf, size_t len)
 {
     uint32_t tmp_pid;
@@ -195,7 +104,7 @@ void change_tracked_pid(const char* buf, size_t len)
 }
 
 // Fills out the relevant fields in data with the
-// given process information
+// process information of the given PID
 void get_process_data(uint32_t pid, data_t* data)
 {
     int files_counter;
@@ -205,9 +114,10 @@ void get_process_data(uint32_t pid, data_t* data)
     struct files_struct* files;
     struct fdtable* fdt;
 
+    // Fetch the relevant process
     task = pid_task(find_vpid(pid), PIDTYPE_PID);
     if (task == NULL) {
-        printk(KERN_INFO "task fetch failed\n");
+        printk(KERN_INFO "Process fetch failed\n");
         return;
     }
     mm = task->mm;
@@ -216,21 +126,22 @@ void get_process_data(uint32_t pid, data_t* data)
     }
     if (mm == NULL) {
         // Panic mode
-        printk(KERN_INFO "mm fetch failed\n");
+        printk(KERN_INFO "MM fetch failed\n");
         return;
     }
     files = task->files;
+
     // Memory information
     data->mm_size = mm->task_size;
     data->mm_hiwater_rss = mm->hiwater_rss;
     data->mm_hiwater_vm = mm->hiwater_vm;
     data->mm_total_vm = mm->total_vm;
-    // Files information
+
+    // File handles information
     rcu_read_lock();
     fdt = files_fdtable(files);
     files_counter = 0;
     tmp_file = fdt->fd[0];
-    // I cannot believe this works
     while (tmp_file != NULL) {
         files_counter++;
         tmp_file = fdt->fd[files_counter];

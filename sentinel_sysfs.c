@@ -20,7 +20,7 @@
 #define NB_FILES_NOT_CPU 17
 
 #define LOAD_INT(x) ((x) >> FSHIFT)
-#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
+#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1 - 1)) * 100)
 
 int nb_files;
 struct kobject* sysfs_entry;
@@ -28,6 +28,8 @@ struct kobj_attribute* k_attrs;
 struct attribute** attrs;
 struct attribute_group attr_group;
 
+// Callback function used when a sysfs file is read.
+// Determines which metric has been asked for, and returns it.
 ssize_t sentinel_sysfs_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf)
 {
     int i;
@@ -83,6 +85,8 @@ ssize_t sentinel_sysfs_show(struct kobject* kobj, struct kobj_attribute* attr, c
     return -EIO;
 }
 
+// Callback function used when a sysfs file is written to.
+// Determines if the metric is writeable, and stores the given data.
 ssize_t sentinel_sysfs_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buf, size_t len)
 {
     printk(KERN_INFO "Sentinel sysfs store called\n");
@@ -95,6 +99,7 @@ ssize_t sentinel_sysfs_store(struct kobject* kobj, struct kobj_attribute* attr, 
     }
 }
 
+// Generates all the files in the sysfs sentinel folder
 uint32_t init_attr_group(void)
 {
     int i;
@@ -186,6 +191,7 @@ uint32_t init_attr_group(void)
     return 0;
 }
 
+// Remoces and frees all the files in the sysfs sentinel folder
 uint32_t del_attr_group(void)
 {
     int i;

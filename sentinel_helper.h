@@ -41,16 +41,7 @@ typedef struct hardware_data {
     unsigned int nb_files;
 } data_t;
 
-data_t* create_data_node(struct list_head* list, int* list_len, gfp_t flag);
-void show_time(struct seq_file* seq, time_t secs);
-void show_val_kb(struct seq_file* seq, const char* s, unsigned long num);
-void show_cpu_freq(struct seq_file* seq, loff_t cpu_id, unsigned int freq);
-void show_loads(struct seq_file* seq, const unsigned long* loads);
-void show_processes(struct seq_file* seq, unsigned int nb_processes);
 void populate_data(data_t* data);
-void print_data_verbose(struct seq_file* seq, const data_t data);
-void print_data_short(struct seq_file* seq, struct list_head* list, void* v);
-void free_list(struct list_head* list_head);
 void change_tracked_pid(const char* buf, size_t len);
 void get_process_data(uint32_t pid, data_t* data);
 #endif // SENTINEL_HERLER_H

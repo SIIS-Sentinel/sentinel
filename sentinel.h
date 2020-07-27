@@ -15,11 +15,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 
-
-#define procfs_dir_name "sentinel"
-#define procfs_name_single "single"
-#define procfs_name_full "full"
-
 static int __init hello(void);
 static void __exit goodbye(void);
 
